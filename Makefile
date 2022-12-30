@@ -1,0 +1,23 @@
+# /**
+#  * @author kahua.li
+#  * @email moflowerlkh@gmail.com
+#  * @date 2022/12/30
+#  **/
+
+# // ------------------------------------ //
+SPACE := $(EMPTY) $(EMPTY)
+
+# // ------------------ JAVA ------------------ //
+JARS = $(shell find ./dist -name "*.jar")
+JARS_WITH_COLON = $(subst ${SPACE},,$(foreach jar,${JARS},${jar}:))
+# MAIN_CLASS = org.apache.spark.examples.sql.kaihua.MyTest
+MAIN_CLASS = org.apache.spark.examples.sql.SparkSQLExample
+
+
+all:
+	export MAVEN_OPTS="-Xss64m -Xmx2g -XX:ReservedCodeCacheSize=1g"
+	./dev/make-distribution.sh --name custom-spark
+
+run:
+	java -cp ${JARS_WITH_COLON} ${MAIN_CLASS}
+
