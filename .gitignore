@@ -3,6 +3,7 @@
 /.idea
 /.bloop
 /.vscode
+/.github
 
 *#*#
 *.#*
