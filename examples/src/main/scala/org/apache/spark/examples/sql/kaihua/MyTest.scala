@@ -2,11 +2,13 @@ package org.apache.spark.examples.sql.kaihua
 
 import org.apache.spark.sql.SparkSession
 
-/**
- * @author kahua.li 
- * @email moflowerlkh@gmail.com
- * @date 2022/12/30
- **/
+/** @author
+  *   kahua.li
+  * @email
+  *   moflowerlkh@gmail.com
+  * @date
+  *   2022/12/30
+  */
 
 object MyTest {
   case class People(name: String, age: Int)
@@ -29,17 +31,20 @@ object MyTest {
     ).toDS()
     val carDS = Seq(
       Car(101, "LiHua"),
-      Car(102, "XYue"),
+      Car(102, "XYue")
     ).toDS()
     peopleDS.createTempView("people")
     carDS.createTempView("car")
 
     if (1 == 1) {
-      spark.sql("select  /*+ SHUFFLE_HASH(people) */ * " +
-          "from people join car on people.name = car.owner")
-          .show()
+      spark
+        .sql(
+          "select  /*+ SHUFFLE_HASH(people) */ * " +
+            "from people join car on people.name = car.owner"
+        )
+        .show()
     } else {
-      spark.sql("select avg(age) from people").show() 
+      spark.sql("select avg(age) from people").show()
     }
     Thread.sleep(60 * 60 * 1000)
   }

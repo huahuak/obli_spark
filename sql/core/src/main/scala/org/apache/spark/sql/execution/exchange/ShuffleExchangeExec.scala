@@ -19,43 +19,29 @@ package org.apache.spark.sql.execution.exchange
 
 import java.util.function.Supplier
 import org.kaihua.obliop.interfaces.ObliJni
+import org.kaihua.obliop.collection.FbsVector
 
 import scala.concurrent.Future
-
 import org.apache.spark._
 import org.apache.spark.internal.config
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
-import org.apache.spark.shuffle.{
-  ShuffleWriteMetricsReporter,
-  ShuffleWriteProcessor
-}
+import org.apache.spark.shuffle.{ShuffleWriteMetricsReporter, ShuffleWriteProcessor}
 import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{
-  Attribute,
-  BoundReference,
-  UnsafeProjection,
-  UnsafeRow
-}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, UnsafeProjection, UnsafeRow}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical._
 import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.metric.{
-  SQLMetric,
-  SQLMetrics,
-  SQLShuffleReadMetricsReporter,
-  SQLShuffleWriteMetricsReporter
-}
+import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.MutablePair
-import org.apache.spark.util.collection.unsafe.sort.{
-  PrefixComparators,
-  RecordComparator
-}
+import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
 import org.apache.spark.util.random.XORShiftRandom
+
+import scala.collection.JavaConverters._
 
 /** Common trait for all shuffle exchange implementations to facilitate pattern
   * matching.
@@ -303,6 +289,7 @@ object ShuffleExchangeExec {
       case HashPartitioning(_, n) =>
         new Partitioner {
           override def numPartitions: Int = n
+
           // For HashPartitioning, the partitioning key is already a valid partition ID, as we use
           // `HashPartitioning.partitionIdExpression` to produce partitioning key.
           override def getPartition(key: Any): Int = key.asInstanceOf[Int]
@@ -337,6 +324,7 @@ object ShuffleExchangeExec {
       case SinglePartition =>
         new Partitioner {
           override def numPartitions: Int = 1
+
           override def getPartition(key: Any): Int = 0
         }
       case _ =>
@@ -406,6 +394,7 @@ object ShuffleExchangeExec {
           val prefixComputer = new UnsafeExternalRowSorter.PrefixComputer {
             private val result =
               new UnsafeExternalRowSorter.PrefixComputer.Prefix
+
             override def computePrefix(
                 row: InternalRow
             ): UnsafeExternalRowSorter.PrefixComputer.Prefix = {
@@ -452,15 +441,25 @@ object ShuffleExchangeExec {
         val retRdd: RDD[Product2[Int, InternalRow]] = if (isOblivious) {
           newRdd.mapPartitionsWithIndexInternal(
             (_, iter) => {
-               val getPartitionKey = getPartitionKeyExtractor()
+              val getPartitionKey = getPartitionKeyExtractor()
               val mutablePair = new MutablePair[Int, InternalRow]()
               iter.map { row =>
                 {
+                  // TODO @add records batch process.
+                  val fbsVector = FbsVector.createVec();
+                  var pos = 0
+                  val record = outputAttributes.map(attr => {
+                    val res = row.get(pos, attr.dataType)
+                    pos += 1
+                    FbsVector.createCell(res, attr.dataType.getClass);
+                  }).toList
+                  fbsVector.append(record.asJava);
+                  val buf = fbsVector.finish();
+                  ObliJni.ObliDataSend(buf);
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)
                 }
               }
-              // ObliJni.ObliDataSend();
             },
             isOrderSensitive = isOrderSensitive
           )
