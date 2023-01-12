@@ -36,6 +36,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.kaihua.obliop</groupId>
+      <artifactId>obliop</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.rocksdb</groupId>
       <artifactId>rocksdbjni</artifactId>
     </dependency>

@@ -18,6 +18,7 @@
 package org.apache.spark.sql.execution.exchange
 
 import java.util.function.Supplier
+import org.kaihua.obliop.interfaces.ObliJni
 
 import scala.concurrent.Future
 
@@ -446,7 +447,7 @@ object ShuffleExchangeExec {
         )
       } else {
         // @add here transer data to optee(rust) env
-        import 
+        // ObliJni.ObliDataSend();
         newRdd.mapPartitionsWithIndexInternal(
           (_, iter) => {
             val getPartitionKey = getPartitionKeyExtractor()
