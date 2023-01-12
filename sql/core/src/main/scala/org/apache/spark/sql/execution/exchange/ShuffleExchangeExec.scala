@@ -447,19 +447,39 @@ object ShuffleExchangeExec {
         )
       } else {
         // @add here transer data to optee(rust) env
-        // ObliJni.ObliDataSend();
-        newRdd.mapPartitionsWithIndexInternal(
-          (_, iter) => {
-            val getPartitionKey = getPartitionKeyExtractor()
-            val mutablePair = new MutablePair[Int, InternalRow]()
-            iter.map { row =>
-              {
-                mutablePair.update(part.getPartition(getPartitionKey(row)), row)
+        val isOblivious =
+          newRdd.context.env.conf.getBoolean("oblivious.enable", false)
+        val retRdd: RDD[Product2[Int, InternalRow]] = if (isOblivious) {
+          newRdd.mapPartitionsWithIndexInternal(
+            (_, iter) => {
+               val getPartitionKey = getPartitionKeyExtractor()
+              val mutablePair = new MutablePair[Int, InternalRow]()
+              iter.map { row =>
+                {
+                  mutablePair
+                    .update(part.getPartition(getPartitionKey(row)), row)
+                }
               }
-            }
-          },
-          isOrderSensitive = isOrderSensitive
-        )
+              // ObliJni.ObliDataSend();
+            },
+            isOrderSensitive = isOrderSensitive
+          )
+        } else {
+          newRdd.mapPartitionsWithIndexInternal(
+            (_, iter) => {
+              val getPartitionKey = getPartitionKeyExtractor()
+              val mutablePair = new MutablePair[Int, InternalRow]()
+              iter.map { row =>
+                {
+                  mutablePair
+                    .update(part.getPartition(getPartitionKey(row)), row)
+                }
+              }
+            },
+            isOrderSensitive = isOrderSensitive
+          )
+        }
+        retRdd
       }
     }
 

@@ -18,6 +18,7 @@ object MyTest {
         .builder()
         .appName("Spark SQL basic example")
         .master("local")
+        .config("oblivious.enable", "true")
         .config("spark.sql.codegen.wholeStage", "false")
         .config("spark.shuffle.sort.bypassMergeThreshold", "0") // disable bypass merge sort, default is 200
         .getOrCreate()
