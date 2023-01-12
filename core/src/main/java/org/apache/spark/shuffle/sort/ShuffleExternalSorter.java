@@ -155,6 +155,7 @@ final class ShuffleExternalSorter extends MemoryConsumer implements ShuffleCheck
    *                   shuffle write metrics.
    */
   private void writeSortedFile(boolean isLastFile) {
+    // @mark 3) writeSortedFile
 
     // This call performs the actual sort.
     final ShuffleInMemorySorter.ShuffleSorterIterator sortedRecords =
@@ -277,6 +278,7 @@ final class ShuffleExternalSorter extends MemoryConsumer implements ShuffleCheck
    */
   @Override
   public long spill(long size, MemoryConsumer trigger) throws IOException {
+    // @mark 2) spill()
     if (trigger != this || inMemSorter == null || inMemSorter.numRecords() == 0) {
       return 0L;
     }
@@ -407,6 +409,7 @@ final class ShuffleExternalSorter extends MemoryConsumer implements ShuffleCheck
    */
   public void insertRecord(Object recordBase, long recordOffset, int length, int partitionId)
     throws IOException {
+    // @mark 1) insertRecord()
 
     // for tests
     assert(inMemSorter != null);

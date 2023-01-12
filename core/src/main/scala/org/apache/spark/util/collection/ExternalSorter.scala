@@ -183,6 +183,7 @@ private[spark] class ExternalSorter[K, V, C](
   private[spark] def numSpills: Int = spills.size
 
   def insertAll(records: Iterator[Product2[K, V]]): Unit = {
+    // @mark 2) insertAll 
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
 
@@ -242,6 +243,7 @@ private[spark] class ExternalSorter[K, V, C](
    * @param collection whichever collection we're using (map or buffer)
    */
   override protected[this] def spill(collection: WritablePartitionedPairCollection[K, C]): Unit = {
+    // @mark 3) spill
     val inMemoryIterator = collection.destructiveSortedWritablePartitionedIterator(comparator)
     val spillFile = spillMemoryIteratorToDisk(inMemoryIterator)
     spills += spillFile
@@ -270,6 +272,7 @@ private[spark] class ExternalSorter[K, V, C](
    */
   private[this] def spillMemoryIteratorToDisk(inMemoryIterator: WritablePartitionedIterator[K, C])
       : SpilledFile = {
+    // @mark 5) spillMemoryIteratorToDisk
     // Because these files may be read during shuffle, their compression must be controlled by
     // spark.shuffle.compress instead of spark.shuffle.spill.compress, so we need to use
     // createTempShuffleBlock here; see SPARK-3426 for more context.
@@ -340,6 +343,7 @@ private[spark] class ExternalSorter[K, V, C](
    */
   private def merge(spills: Seq[SpilledFile], inMemory: Iterator[((Int, K), C)])
       : Iterator[(Int, Iterator[Product2[K, C]])] = {
+    // @mark 8) merge-sort external
     val readers = spills.map(new SpillReader(_))
     val inMemBuffered = inMemory.buffered
     (0 until numPartitions).iterator.map { p =>
@@ -643,6 +647,7 @@ private[spark] class ExternalSorter[K, V, C](
    * Exposed for testing.
    */
   def partitionedIterator: Iterator[(Int, Iterator[Product2[K, C]])] = {
+    // @mark 7) partitionedIterator
     val usingMap = aggregator.isDefined
     val collection: WritablePartitionedPairCollection[K, C] = if (usingMap) map else buffer
     if (spills.isEmpty) {
@@ -744,6 +749,7 @@ private[spark] class ExternalSorter[K, V, C](
       shuffleId: Int,
       mapId: Long,
       mapOutputWriter: ShuffleMapOutputWriter): Unit = {
+    // @mark 6) writePartitionedMapOutput()
     var nextPartitionId = 0
     if (spills.isEmpty) {
       // Case where we only have in-memory data

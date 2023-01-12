@@ -179,6 +179,7 @@ final class ShuffleInMemorySorter {
    * Return an iterator over record pointers in sorted order.
    */
   public ShuffleSorterIterator getSortedIterator() {
+    // @mark 4) getSortedIterator
     int offset = 0;
     if (useRadixSort) {
       offset = RadixSort.sort(

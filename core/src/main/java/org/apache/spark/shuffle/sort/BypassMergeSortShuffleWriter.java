@@ -168,6 +168,7 @@ final class BypassMergeSortShuffleWriter<K, V>
       while (records.hasNext()) {
         final Product2<K, V> record = records.next();
         final K key = record._1();
+        // @add here directly write instead of sort first.
         partitionWriters[partitioner.getPartition(key)].write(key, record._2());
       }
 

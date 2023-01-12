@@ -19,6 +19,7 @@ object MyTest {
         .appName("Spark SQL basic example")
         .master("local")
         .config("spark.sql.codegen.wholeStage", "false")
+        .config("spark.shuffle.sort.bypassMergeThreshold", "0") // disable bypass merge sort, default is 200
         .getOrCreate()
     import spark.implicits._
     val peopleDS = Seq(
@@ -32,8 +33,8 @@ object MyTest {
     peopleDS.createTempView("people")
     carDS.createTempView("car")
 
-    if (1 == 0) {
-      spark.sql("select  /*+ SHUFFLE_MERGE(people) */ * " +
+    if (1 == 1) {
+      spark.sql("select  /*+ SHUFFLE_HASH(people) */ * " +
           "from people join car on people.name = car.owner")
           .show()
     } else {
