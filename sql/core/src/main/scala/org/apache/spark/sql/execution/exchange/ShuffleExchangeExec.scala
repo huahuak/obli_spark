@@ -37,6 +37,7 @@ import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.MutablePair
 import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
 import org.apache.spark.util.random.XORShiftRandom
@@ -449,9 +450,14 @@ object ShuffleExchangeExec {
                   val fbsVector = FbsVector.createVec();
                   var pos = 0
                   val record = outputAttributes.map(attr => {
-                    val res = row.get(pos, attr.dataType)
+                    var res = row.get(pos, attr.dataType)
                     pos += 1
-                    FbsVector.createCell(res, attr.dataType.getClass);
+                    // TODO here is patch
+                    if (res.isInstanceOf[UTF8String]) {
+                      res = (res.asInstanceOf[UTF8String]).toString
+                    }
+                    // TODO make attr more simple
+                    FbsVector.createCell(res, attr.dataType.toString);
                   }).toList
                   fbsVector.append(record.asJava);
                   val buf = fbsVector.finish();
