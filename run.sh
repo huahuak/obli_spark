@@ -5,4 +5,4 @@ do
   dep="${jar}:${dep}"
 done
 # echo ${dep}
-java -cp ${dep} org.apache.spark.examples.sql.SparkSQLExample
+java -cp ${dep} org.apache.spark.examples.sql.kaihua.MyTest

@@ -455,7 +455,7 @@ object ShuffleExchangeExec {
                   }).toList
                   fbsVector.append(record.asJava);
                   val buf = fbsVector.finish();
-                  ObliJni.ObliDataSend(buf);
+                  // ObliJni.ObliDataSend(buf);
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)
                 }

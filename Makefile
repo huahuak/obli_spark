@@ -10,12 +10,12 @@ SPACE := $(EMPTY) $(EMPTY)
 # // ------------------ JAVA ------------------ //
 JARS = $(shell find ./dist -name "*.jar")
 JARS_WITH_COLON = $(subst ${SPACE},,$(foreach jar,${JARS},${jar}:))
-# MAIN_CLASS = org.apache.spark.examples.sql.kaihua.MyTest
-MAIN_CLASS = org.apache.spark.examples.sql.SparkSQLExample
+MAIN_CLASS = org.apache.spark.examples.sql.kaihua.MyTest
+# MAIN_CLASS = org.apache.spark.examples.sql.SparkSQLExample
 
 
 all:
-	export MAVEN_OPTS="-Xss64m -Xmx2g -XX:ReservedCodeCacheSize=1g"
+	export MAVEN_OPTS="-Xss128m -Xmx6g -XX:ReservedCodeCacheSize=1g"
 	./dev/make-distribution.sh --name custom-spark
 
 run:

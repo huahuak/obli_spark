@@ -84,6 +84,12 @@
   </profiles>
   <dependencies>
     <dependency>
+      <groupId>org.kaihua.obliop</groupId>
+      <artifactId>obliop</artifactId>
+      <version>1.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>org.rocksdb</groupId>
       <artifactId>rocksdbjni</artifactId>
       <version>6.20.3</version>
