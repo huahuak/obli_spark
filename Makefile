@@ -21,3 +21,12 @@ all:
 run:
 	java -cp ${JARS_WITH_COLON} ${MAIN_CLASS}
 
+.PHONY:	obliop
+obliop:
+	mvn install -pl obliop -Dcheckstyle.skip
+	mvn package -pl obliop 
+	mv -f obliop/target/obliop-1.0.jar dist/jars/
+
+sql-core:
+	mvn package -pl sql/core -DskipTests
+	mv -f sql/core/target/spark-sql_2.12-3.3.1.jar dist/jars/
