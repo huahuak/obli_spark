@@ -17,32 +17,39 @@
 
 package org.apache.spark.sql.execution.exchange
 
-import java.util.function.Supplier
-import org.kaihua.obliop.interfaces.ObliJni
-import org.kaihua.obliop.collection.FbsVector
-
-import scala.concurrent.Future
 import org.apache.spark._
 import org.apache.spark.internal.config
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
-import org.apache.spark.shuffle.{ShuffleWriteMetricsReporter, ShuffleWriteProcessor}
 import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, UnsafeProjection, UnsafeRow}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical._
 import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
+import org.apache.spark.sql.execution.metric.{
+  SQLMetric,
+  SQLMetrics,
+  SQLShuffleReadMetricsReporter,
+  SQLShuffleWriteMetricsReporter
+}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.MutablePair
-import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
+import org.apache.spark.util.collection.unsafe.sort.{
+  PrefixComparators,
+  RecordComparator
+}
 import org.apache.spark.util.random.XORShiftRandom
+import org.kaihua.obliop.collection.FbsVector
+import org.kaihua.obliop.interfaces.ObliOp
+import org.kaihua.obliop.operator.Operation
+import org.kaihua.obliop.operator.context.Context
 
+import java.util.function.Supplier
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
 
 /** Common trait for all shuffle exchange implementations to facilitate pattern
   * matching.
@@ -449,19 +456,28 @@ object ShuffleExchangeExec {
                   // TODO @add records batch process.
                   val fbsVector = FbsVector.createVec();
                   var pos = 0
-                  val record = outputAttributes.map(attr => {
-                    var res = row.get(pos, attr.dataType)
-                    pos += 1
-                    // TODO here is patch
-                    if (res.isInstanceOf[UTF8String]) {
-                      res = (res.asInstanceOf[UTF8String]).toString
-                    }
-                    // TODO make attr more simple
-                    FbsVector.createCell(res, attr.dataType.toString);
-                  }).toList
+                  val record = outputAttributes
+                    .map(attr => {
+                      var res = row.get(pos, attr.dataType)
+                      pos += 1
+                      // @todo here is patch
+                      res match {
+                        case string: UTF8String =>
+                          res = string.toString
+                        case _ =>
+                      }
+                      FbsVector.createCell(res, attr.dataType.toString);
+                    })
+                    .toList
                   fbsVector.append(record.asJava);
                   val buf = fbsVector.finish();
-                  ObliJni.ObliDataSend(buf);
+
+                  val input = FbsVector.toObliData(buf);
+                  ObliOp.ObliDataSend(input);
+                  val ctx = Context.empty();
+                  Operation.mod(ctx, Operation.hash(ctx, input));
+                  ObliOp.ObliOpCtxExec(ctx);
+
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)
                 }
