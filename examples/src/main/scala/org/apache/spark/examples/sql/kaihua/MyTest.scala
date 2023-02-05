@@ -14,16 +14,13 @@ object MyTest {
 
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
-      .builder()
-      .appName("Spark SQL basic example")
-      .master("local")
-      .config("oblivious.enable", "true")
-      .config("spark.sql.codegen.wholeStage", "false")
-      .config(
-        "spark.shuffle.sort.bypassMergeThreshold",
-        "0"
-      ) // disable bypass merge sort, default is 200
-      .getOrCreate()
+        .builder()
+        .appName("Spark SQL basic example")
+        .master("local")
+        .config("oblivious.enable", "true")
+        .config("spark.sql.codegen.wholeStage", "false")
+        .config("spark.shuffle.sort.bypassMergeThreshold", "0") // disable bypass merge sort, default is 200
+        .getOrCreate()
     import spark.implicits._
     val peopleDS = Seq(
       People("LiHua", 22),
