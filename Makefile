@@ -16,6 +16,7 @@ MAIN_CLASS = org.apache.spark.examples.sql.kaihua.MyTest
 
 all:
 	export MAVEN_OPTS="-Xss128m -Xmx6g -XX:ReservedCodeCacheSize=1g"
+	# ./dev/make-distribution.sh --name custom-spark -Dmaven.test.skip=true
 	./dev/make-distribution.sh --name custom-spark
 
 run:
@@ -27,11 +28,14 @@ obliop:
 	# mv -f obliop/target/obliop-1.0-jar-with-dependencies.jar dist/jars/
 	mv -f obliop/target/obliop-1.0.jar dist/jars/
 
-sql-core:
-	mvn package -pl sql/core -DskipTests
+.PHONY: sql
+sql:
+	mvn package -pl sql/core  -Dmaven.test.skip=true
+	cp -f sql/core/target/spark-sql_2.12-3.3.1.jar /home/huahua/Projects/optee/optee_rust/out/spark/dist/jars/spark-sql_2.12-3.3.1.jar
 	mv -f sql/core/target/spark-sql_2.12-3.3.1.jar dist/jars/
 
 .PHONY: examples
 examples:
 	mvn package -pl examples
+	cp -f examples/target/original-spark-examples_2.12-3.3.1.jar
 	mv -f examples/target/original-spark-examples_2.12-3.3.1.jar dist/examples/jars/original-spark-examples_2.12-3.3.1.jar

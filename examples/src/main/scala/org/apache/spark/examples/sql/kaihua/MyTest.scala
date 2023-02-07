@@ -32,7 +32,7 @@ object MyTest {
       )
       .getOrCreate()
 
-    spark.sparkContext.setLogLevel("INFO")
+    // spark.sparkContext.setLogLevel("INFO")
     import spark.implicits._
     val peopleDS = Seq(
       People("LiHua", 22),
