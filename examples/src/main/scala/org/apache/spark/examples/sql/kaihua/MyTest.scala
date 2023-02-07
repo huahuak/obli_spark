@@ -2,25 +2,37 @@ package org.apache.spark.examples.sql.kaihua
 
 import org.apache.spark.sql.SparkSession
 
-/**
- * @author kahua.li
- * @email moflowerlkh@gmail.com
- * @date 2023/01/13
- * */
+/** @author
+  *   kahua.li
+  * @email
+  *   moflowerlkh@gmail.com
+  * @date
+  *   2023/01/13
+  */
 object MyTest {
   case class People(name: String, age: Int)
 
   case class Car(id: Long, owner: String)
 
   def main(args: Array[String]): Unit = {
+
     val spark = SparkSession
-        .builder()
-        .appName("Spark SQL basic example")
-        .master("local")
-        .config("oblivious.enable", "true")
-        .config("spark.sql.codegen.wholeStage", "false")
-        .config("spark.shuffle.sort.bypassMergeThreshold", "0") // disable bypass merge sort, default is 200
-        .getOrCreate()
+      .builder()
+      .appName("Spark SQL basic example")
+      .master("local")
+      .config("oblivious.enable", "true") // oblivious
+      .config("spark.sql.codegen.wholeStage", "false")
+      .config(
+        "spark.shuffle.sort.bypassMergeThreshold",
+        "0"
+      ) // disable bypass merge sort, default is 200
+      .config(
+        "spark.ui.enabled",
+        "false"
+      )
+      .getOrCreate()
+
+    spark.sparkContext.setLogLevel("INFO")
     import spark.implicits._
     val peopleDS = Seq(
       People("LiHua", 22),
@@ -33,12 +45,14 @@ object MyTest {
     peopleDS.createTempView("people")
     carDS.createTempView("car")
 
-    if (1 == 1) spark
+    if (1 == 1) {
+      spark
         .sql(
           "select  /*+ SHUFFLE_HASH(people) */ * " +
             "from people join car on people.name = car.owner"
         )
-        .show() else spark.sql("select avg(age) from people").show()
-    Thread.sleep(60 * 60 * 1000)
+        .show()
+    } else { spark.sql("select avg(age) from people").show() }
+    // Thread.sleep(60 * 60 * 1000)
   }
 }
