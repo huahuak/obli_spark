@@ -21,20 +21,36 @@ import org.apache.spark._
 import org.apache.spark.internal.config
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
-import org.apache.spark.shuffle.{ShuffleWriteMetricsReporter, ShuffleWriteProcessor}
+import org.apache.spark.shuffle.{
+  ShuffleWriteMetricsReporter,
+  ShuffleWriteProcessor
+}
 import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, UnsafeProjection, UnsafeRow}
+import org.apache.spark.sql.catalyst.expressions.{
+  Attribute,
+  BoundReference,
+  UnsafeProjection,
+  UnsafeRow
+}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical._
 import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
+import org.apache.spark.sql.execution.metric.{
+  SQLMetric,
+  SQLMetrics,
+  SQLShuffleReadMetricsReporter,
+  SQLShuffleWriteMetricsReporter
+}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.MutablePair
-import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
+import org.apache.spark.util.collection.unsafe.sort.{
+  PrefixComparators,
+  RecordComparator
+}
 import org.apache.spark.util.random.XORShiftRandom
 import org.kaihua.obliop.collection.FbsVector
 import org.kaihua.obliop.interfaces.ObliOp
@@ -448,7 +464,7 @@ object ShuffleExchangeExec {
               iter.map { row =>
                 {
                   // TODO @add records batch process.
-                  val fbsVector = FbsVector.createVec();
+                  val fbs = FbsVector.createVec();
                   var pos = 0
                   val record = outputAttributes
                     .map(attr => {
@@ -463,14 +479,16 @@ object ShuffleExchangeExec {
                       FbsVector.createCell(res, attr.dataType.toString);
                     })
                     .toList
-                  fbsVector.append(record.asJava);
-                  val buf = fbsVector.finish();
+                  fbs.append(record.asJava);
+                  val buf = fbs.finish();
 
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);
                   val ctx = Context.empty();
-                  Operation.mod(ctx, Operation.hash(ctx, input));
+                  val result = Operation.mod(ctx, Operation.hash(ctx, input));
                   ObliOp.ObliOpCtxExec(ctx);
+                  val fbs = ObliOp.ObliDataGet(result);
+                  FbsVector.printFbs(fbs);
 
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)
