@@ -36,8 +36,10 @@ object ObliviousJoinStrategy extends Strategy with JoinSelectionHelper {
         sortedLeft,
         sortedRight
       )
+
       // step 3. oblivious sort dummy record and filter
-      
+
+
       Seq(obliJoin)
 
     case _ => Nil

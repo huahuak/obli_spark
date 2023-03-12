@@ -466,7 +466,7 @@ object ShuffleExchangeExec {
                     })
                     .toList
                   fbs.append(record.asJava);
-                  val buf = fbs.finish();
+                  val buf = fbs.finishAndClear();
 
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);
@@ -474,7 +474,7 @@ object ShuffleExchangeExec {
                   val result = Operation.mod(ctx, Operation.hash(ctx, input));
                   ObliOp.ObliOpCtxExec(ctx);
                   val fbs_buf = ObliOp.ObliDataGet(result);
-                  FbsVector.printFbs(fbs_buf);
+                  FbsVector.printFbs(fbs_buf.get());
 
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)

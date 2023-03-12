@@ -9,6 +9,8 @@ import org.kaihua.obliop.interfaces.ObliOp
 import org.kaihua.obliop.operator.Operation
 import org.kaihua.obliop.operator.context.Context
 
+import scala.collection.mutable
+
 case class ObliviousSort(
     sortOrder: Seq[SortOrder],
     global: Boolean,
@@ -23,48 +25,74 @@ case class ObliviousSort(
 
   override protected def doExecute(): RDD[InternalRow] = {
     // oblivious sort implement
-    val BlockMaxSize = math.pow(10, 4)
     // collect all records and divide to N Block
-    var BlockInfoList = Array.fill[BlockInfo](1) {
-      new BlockInfo
+    var fbs = FbsVector.createVec()
+    var BlockInfoList = mutable.Queue.fill[BlockInfo](1) {
+      new BlockInfo(fbs)
     }
-    var currentBlock = BlockInfoList(0)
+    var currentBlock = BlockInfoList.head
 
-    var cnt = 0
-    child
+    val attrs = child.output.attrs
+    val childRdd = child
       .execute()
+    childRdd
       .foreach(record => {
-        if (currentBlock.len > BlockMaxSize) {
-          BlockInfoList :+= new BlockInfo
-          cnt = 0 // resize counter
+        if (!currentBlock.write(record, attrs)) {
+          BlockInfoList :+= new BlockInfo(fbs)
+          currentBlock = BlockInfoList.last
+          currentBlock.write(record, attrs)
         }
-        cnt += 1
-        currentBlock.write(record)
       })
+    BlockInfoList.last.finish()
 
     // quick sort in trusted application
-    BlockInfoList.foreach(item => {
-      var fbs = FbsVector.createVec()
-      val bytbuf = fbs.finish()
-      val data = FbsVector.toObliData(bytbuf)
+    BlockInfoList.foreach(block => {
+      val data = FbsVector.toObliData(block.getBytBuf())
       ObliOp.ObliDataSend(data)
-
-      val ctx = Context.empty();
-      val result = Operation.mod(ctx, Operation.hash(ctx, data));
+      val ctx = Context.empty()
+      val result = Operation.sort(ctx, data);
       ObliOp.ObliOpCtxExec(ctx);
+      val bytBuf = ObliOp.ObliDataGet(result)
+      block.setBytBuf(bytBuf.get())
     })
 
-    // sort blocks using sorting network
-    if (BlockInfoList.length > 1) {
+    // don't need sorting network
+    if (BlockInfoList.length < 1) {
+      return childRdd.mapPartitionsInternal { _ =>
+        new Iterator[InternalRow] {
 
+          var bList = BlockInfoList
+          var cur = if (bList.nonEmpty) {
+            new blockIter(bList.dequeue())
+          } else {
+            null
+          }
+
+          override def hasNext: Boolean = {
+            if (cur == null) {
+              return false
+            }
+            if (!cur.hasNext) {
+              if (bList.isEmpty) {
+                cur = null
+                return false
+              }
+              cur = new blockIter(bList.dequeue())
+            }
+            true
+          }
+
+          override def next(): InternalRow = {
+            cur.next()
+          }
+        }
+      }
     }
+
+    // sort blocks using sorting network
     null
   }
 
   override def output: Seq[Attribute] = child.output
-}
 
-class BlockInfo {
-  def write(internalRow: InternalRow): Unit = {}
-  def len(): Int = { 0 }
 }
