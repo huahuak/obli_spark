@@ -2,14 +2,19 @@ package org.apache.spark.examples.sql.kaihua
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Attribute, SortOrder}
+import org.apache.spark.sql.catalyst.expressions.{
+  Attribute,
+  Expression,
+  SortOrder
+}
 import org.apache.spark.sql.execution.{SparkPlan, UnaryExecNode}
 import org.kaihua.obliop.collection.FbsVector
 import org.kaihua.obliop.interfaces.ObliOp
 import org.kaihua.obliop.operator.Operation
-import org.kaihua.obliop.operator.context.Context
+import org.kaihua.obliop.operator.context.{Context, SortOrderInfo}
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 case class ObliviousSort(
     sortOrder: Seq[SortOrder],
@@ -25,72 +30,78 @@ case class ObliviousSort(
 
   override protected def doExecute(): RDD[InternalRow] = {
     // oblivious sort implement
-    // collect all records and divide to N Block
-    var fbs = FbsVector.createVec()
-    var BlockInfoList = mutable.Queue.fill[BlockInfo](1) {
-      new BlockInfo(fbs)
-    }
-    var currentBlock = BlockInfoList.head
-
     val attrs = child.output.attrs
     val childRdd = child
       .execute()
     childRdd
-      .foreach(record => {
-        if (!currentBlock.write(record, attrs)) {
-          BlockInfoList :+= new BlockInfo(fbs)
-          currentBlock = BlockInfoList.last
-          currentBlock.write(record, attrs)
+      .mapPartitions(iter => {
+        val fbs = FbsVector.createVec()
+        var BlockInfoList = mutable.Queue.fill[BlockInfo](1) {
+          new BlockInfo(fbs)
         }
-      })
-    BlockInfoList.last.finish()
-
-    // quick sort in trusted application
-    BlockInfoList.foreach(block => {
-      val data = FbsVector.toObliData(block.getBytBuf())
-      ObliOp.ObliDataSend(data)
-      val ctx = Context.empty()
-      val result = Operation.sort(ctx, data);
-      ObliOp.ObliOpCtxExec(ctx);
-      val bytBuf = ObliOp.ObliDataGet(result)
-      block.setBytBuf(bytBuf.get())
-    })
-
-    // don't need sorting network
-    if (BlockInfoList.length < 1) {
-      return childRdd.mapPartitionsInternal { _ =>
-        new Iterator[InternalRow] {
-
-          var bList = BlockInfoList
-          var cur = if (bList.nonEmpty) {
-            new blockIter(bList.dequeue())
-          } else {
-            null
+        var currentBlock = BlockInfoList.head
+        // collect all records and divide to N Block
+        iter.foreach(record => {
+          if (!currentBlock.write(record, attrs)) {
+            BlockInfoList :+= new BlockInfo(fbs)
+            currentBlock = BlockInfoList.last
+            currentBlock.write(record, attrs)
           }
+        })
+        BlockInfoList.last.finish()
 
-          override def hasNext: Boolean = {
-            if (cur == null) {
-              return false
+        // quick sort in trusted application
+        BlockInfoList.foreach(block => {
+          val data = FbsVector.toObliData(block.getBytBuf())
+          ObliOp.ObliDataSend(data)
+          val ctx = Context.empty()
+          // get sort order
+          val attr = sortOrder.asInstanceOf[Expression].references;
+          val result =
+            Operation.sort(ctx, data, List(new SortOrderInfo(0, 1)).asJava);
+          ObliOp.ObliOpCtxExec(ctx);
+          val bytBuf = ObliOp.ObliDataGet(result)
+          block.setBytBuf(bytBuf.get())
+        })
+
+        // don't need sorting network
+        def nonSortingNetwork(): Iterator[InternalRow] = {
+          new Iterator[InternalRow] {
+            var bList = BlockInfoList
+            var cur = if (bList.nonEmpty) {
+              new blockIter(bList.dequeue())
+            } else {
+              null
             }
-            if (!cur.hasNext) {
-              if (bList.isEmpty) {
-                cur = null
+
+            override def hasNext: Boolean = {
+              if (cur == null) {
                 return false
               }
-              cur = new blockIter(bList.dequeue())
+              if (!cur.hasNext) {
+                if (bList.isEmpty) {
+                  cur = null
+                  return false
+                }
+                cur = new blockIter(bList.dequeue())
+              }
+              true
             }
-            true
-          }
 
-          override def next(): InternalRow = {
-            cur.next()
+            override def next(): InternalRow = {
+              cur.next()
+            }
           }
         }
-      }
-    }
 
-    // sort blocks using sorting network
-    null
+        // sort blocks using sorting network
+        def sortingNetwork(): Iterator[InternalRow] = { null }
+
+        if (BlockInfoList.length < 1) {
+          nonSortingNetwork()
+        }
+        sortingNetwork()
+      })
   }
 
   override def output: Seq[Attribute] = child.output
