@@ -183,7 +183,7 @@ private[spark] class ExternalSorter[K, V, C](
   private[spark] def numSpills: Int = spills.size
 
   def insertAll(records: Iterator[Product2[K, V]]): Unit = {
-    // @mark 2) insertAll 
+    // @mark 2) insertAll
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
 

@@ -191,7 +191,7 @@ final class ShuffleInMemorySorter {
         array.getBaseObject(),
         array.getBaseOffset() + pos * 8L,
         (array.size() - pos) * 8L);
-      LongArray buffer = new LongArray(unused);
+      LongArray buffer = new LongArray(unused)/**/;
       Sorter<PackedRecordPointer, LongArray> sorter =
         new Sorter<>(new ShuffleSortDataFormat(buffer));
 

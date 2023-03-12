@@ -482,7 +482,7 @@ object ShuffleExchangeExec {
                   val result = Operation.hash(ctx, input);
                   ObliOp.ObliOpCtxExec(ctx);
                   val fbs_buf = ObliOp.ObliDataGet(result);
-                  FbsVector.printFbs(fbs_buf)
+                  FbsVector.printFbs(fbs_buf.get());
 
                   mutablePair
                     .update(part.getPartition(getPartitionKey(row)), row)
