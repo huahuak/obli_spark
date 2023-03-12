@@ -30,12 +30,13 @@ obliop:
 
 .PHONY: sql
 sql:
+	mvn install -pl obliop 
 	mvn package -pl sql/core  -Dmaven.test.skip=true
 	cp -f sql/core/target/spark-sql_2.12-3.3.1.jar /home/huahua/Projects/optee/optee_rust/out/spark/dist/jars/spark-sql_2.12-3.3.1.jar
 	mv -f sql/core/target/spark-sql_2.12-3.3.1.jar dist/jars/
 
 .PHONY: examples
 examples:
-	mvn package -pl examples
+	mvn package -pl examples -Dmaven.test.skip=true 
 	cp -f examples/target/original-spark-examples_2.12-3.3.1.jar
 	mv -f examples/target/original-spark-examples_2.12-3.3.1.jar dist/examples/jars/original-spark-examples_2.12-3.3.1.jar

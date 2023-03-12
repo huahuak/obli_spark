@@ -473,7 +473,7 @@ object ShuffleExchangeExec {
                     })
                     .toList
                   fbs.append(record.asJava);
-                  val buf = fbs.finish();
+                  val buf = fbs.finishAndClear();
 
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);
