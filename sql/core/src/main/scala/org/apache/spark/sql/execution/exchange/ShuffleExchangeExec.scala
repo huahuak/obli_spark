@@ -482,7 +482,6 @@ object ShuffleExchangeExec {
                   val result = Operation.hash(ctx, input);
                   ObliOp.ObliOpCtxExec(ctx);
                   val fbs_buf = ObliOp.ObliDataGet(result);
-                  println("[ShuffleExchangeExec] here")
                   FbsVector.printFbs(fbs_buf)
 
                   mutablePair

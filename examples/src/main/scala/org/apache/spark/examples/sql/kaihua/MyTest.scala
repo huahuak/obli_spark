@@ -20,7 +20,7 @@ object MyTest {
       .builder()
       .appName("Spark SQL basic example")
       .master("local")
-      .config("oblivious.enable", "true") // oblivious
+      // .config("oblivious.enable", "true") // oblivious
       .config("spark.sql.codegen.wholeStage", "false")
       .config(
         "spark.shuffle.sort.bypassMergeThreshold",
