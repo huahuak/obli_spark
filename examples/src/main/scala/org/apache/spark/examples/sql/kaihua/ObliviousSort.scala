@@ -3,7 +3,9 @@ package org.apache.spark.examples.sql.kaihua
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{
+  Ascending,
   Attribute,
+  Descending,
   Expression,
   SortOrder
 }
@@ -56,9 +58,24 @@ case class ObliviousSort(
           ObliOp.ObliDataSend(data)
           val ctx = Context.empty()
           // get sort order
-          val attr = sortOrder.asInstanceOf[Expression].references;
+          var sortOrderList: List[SortOrderInfo] = List()
+          sortOrder.foreach(so => {
+//            val soAttr = so.asInstanceOf[Expression].references;
+            attrs.zipWithIndex.foreach(tuple => {
+              val (a, index) = tuple
+              if (so.child.canonicalized.equals(a.canonicalized)) {
+                // noinspection ScalaStyle
+                val direction = so.direction match {
+                  case Ascending  => 1
+                  case Descending => -1
+                }
+                sortOrderList :+= new SortOrderInfo(index, direction)
+              }
+            })
+
+          })
           val result =
-            Operation.sort(ctx, data, List(new SortOrderInfo(0, 1)).asJava);
+            Operation.sort(ctx, data, sortOrderList.asJava);
           ObliOp.ObliOpCtxExec(ctx);
           val bytBuf = ObliOp.ObliDataGet(result)
           block.setBytBuf(bytBuf.get())
