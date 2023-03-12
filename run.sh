@@ -1,6 +1,6 @@
 export PATH=$PATH:../res/jdk1.8.0_351/bin
 dep=""
-for jar in `find ./dist -name '*.jar' | sort`
+for jar in `find ../ -name '*.jar' | sort`
 do
   dep="${jar}:${dep}"
 done

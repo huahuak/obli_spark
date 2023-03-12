@@ -21,27 +21,41 @@ import org.apache.spark._
 import org.apache.spark.internal.config
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
-import org.apache.spark.shuffle.{ShuffleWriteMetricsReporter, ShuffleWriteProcessor}
+import org.apache.spark.shuffle.{
+  ShuffleWriteMetricsReporter,
+  ShuffleWriteProcessor
+}
 import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, UnsafeProjection, UnsafeRow}
+import org.apache.spark.sql.catalyst.expressions.{
+  Attribute,
+  BoundReference,
+  UnsafeProjection,
+  UnsafeRow
+}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical._
 import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
+import org.apache.spark.sql.execution.metric.{
+  SQLMetric,
+  SQLMetrics,
+  SQLShuffleReadMetricsReporter,
+  SQLShuffleWriteMetricsReporter
+}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.MutablePair
-import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
+import org.apache.spark.util.collection.unsafe.sort.{
+  PrefixComparators,
+  RecordComparator
+}
 import org.apache.spark.util.random.XORShiftRandom
-import org.json4s.scalap.scalasig.ClassFileParser.byte
 import org.kaihua.obliop.collection.FbsVector
 import org.kaihua.obliop.interfaces.ObliOp
 import org.kaihua.obliop.operator.Operation
 import org.kaihua.obliop.operator.context.Context
-import org.kaihua.obliop.util.Util
 
 import java.util.function.Supplier
 import scala.collection.JavaConverters._
@@ -466,7 +480,7 @@ object ShuffleExchangeExec {
                     })
                     .toList
                   fbs.append(record.asJava);
-                  val buf = fbs.finishAndClear();
+                  val buf = fbs.finish();
 
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);

@@ -23,10 +23,15 @@ run:
 
 .PHONY:	obliop
 obliop:
-	mvn install -pl obliop -Dcheckstyle.skip
 	mvn package -pl obliop 
+	# mv -f obliop/target/obliop-1.0-jar-with-dependencies.jar dist/jars/
 	mv -f obliop/target/obliop-1.0.jar dist/jars/
 
 sql-core:
 	mvn package -pl sql/core -DskipTests
 	mv -f sql/core/target/spark-sql_2.12-3.3.1.jar dist/jars/
+
+.PHONY: examples
+examples:
+	mvn package -pl examples
+	mv -f examples/target/original-spark-examples_2.12-3.3.1.jar dist/examples/jars/original-spark-examples_2.12-3.3.1.jar
