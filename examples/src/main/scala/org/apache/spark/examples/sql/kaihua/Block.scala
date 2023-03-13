@@ -5,7 +5,13 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter
 import org.apache.spark.unsafe.types.UTF8String
 import org.kaihua.obliop.collection.FbsVector
-import org.kaihua.obliop.collection.fbs.{DoubleValue, FieldUnion, IntValue, RowTable, StringValue}
+import org.kaihua.obliop.collection.fbs.{
+  DoubleValue,
+  FieldUnion,
+  IntValue,
+  RowTable,
+  StringValue
+}
 
 import java.nio.ByteBuffer
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
@@ -25,10 +31,9 @@ class blockIter(block: BlockInfo) extends Iterator[InternalRow] {
   override def next(): InternalRow = {
     assert(curRow < rowSize)
     val row = rowTable.rows(curRow);
-    curRow += 1
     val writer =
       new UnsafeRowWriter(row.fieldsLength(), row.fieldsLength() * 32)
-    for (i <- 0 to row.fieldsLength()) {
+    for (i <- 0 until  row.fieldsLength()) {
       val fieldObj = row.fields(i)
       fieldObj.valueType match {
         case FieldUnion.IntValue =>
@@ -48,6 +53,7 @@ class blockIter(block: BlockInfo) extends Iterator[InternalRow] {
 
       }
     }
+    curRow += 1
     writer.getRow
   }
 }
