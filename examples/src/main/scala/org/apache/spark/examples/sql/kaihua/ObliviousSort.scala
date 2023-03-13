@@ -9,7 +9,7 @@ import org.apache.spark.sql.catalyst.expressions.{
   Expression,
   SortOrder
 }
-import org.apache.spark.sql.execution.{SparkPlan, UnaryExecNode}
+import org.apache.spark.sql.execution.{RowIterator, SparkPlan, UnaryExecNode}
 import org.kaihua.obliop.collection.FbsVector
 import org.kaihua.obliop.interfaces.ObliOp
 import org.kaihua.obliop.operator.Operation
@@ -32,11 +32,10 @@ case class ObliviousSort(
 
   override protected def doExecute(): RDD[InternalRow] = {
     // oblivious sort implement
-    val attrs = child.output.attrs
-    val childRdd = child
+    child
       .execute()
-    childRdd
-      .mapPartitions(iter => {
+      .mapPartitionsInternal(iter => {
+        val attrs = child.output.attrs
         val fbs = FbsVector.createVec()
         var BlockInfoList = mutable.Queue.fill[BlockInfo](1) {
           new BlockInfo(fbs)
@@ -114,10 +113,11 @@ case class ObliviousSort(
         // sort blocks using sorting network
         def sortingNetwork(): Iterator[InternalRow] = { null }
 
-        if (BlockInfoList.length < 1) {
+        if (BlockInfoList.length < 2) {
           nonSortingNetwork()
+        } else {
+          sortingNetwork()
         }
-        sortingNetwork()
       })
   }
 

@@ -24,13 +24,14 @@ run:
 
 .PHONY:	obliop
 obliop:
-	mvn package -pl obliop 
+	mvn install -pl obliop 
+	# mvn package -pl obliop 
 	# mv -f obliop/target/obliop-1.0-jar-with-dependencies.jar dist/jars/
+	cp -f obliop/target/obliop-1.0.jar /home/huahua/Projects/optee/optee_rust/out/spark/dist/jars/obliop-1.0.jar
 	mv -f obliop/target/obliop-1.0.jar dist/jars/
 
 .PHONY: sql
 sql:
-	mvn install -pl obliop 
 	mvn package -pl sql/core  -Dmaven.test.skip=true
 	cp -f sql/core/target/spark-sql_2.12-3.3.1.jar /home/huahua/Projects/optee/optee_rust/out/spark/dist/jars/spark-sql_2.12-3.3.1.jar
 	mv -f sql/core/target/spark-sql_2.12-3.3.1.jar dist/jars/
@@ -38,5 +39,5 @@ sql:
 .PHONY: examples
 examples:
 	mvn package -pl examples -Dmaven.test.skip=true 
-	cp -f examples/target/original-spark-examples_2.12-3.3.1.jar
+	cp -f examples/target/original-spark-examples_2.12-3.3.1.jar /home/huahua/Projects/optee/optee_rust/out/spark/dist/jars/original-spark-examples_2.12-3.3.1.jar
 	mv -f examples/target/original-spark-examples_2.12-3.3.1.jar dist/examples/jars/original-spark-examples_2.12-3.3.1.jar
