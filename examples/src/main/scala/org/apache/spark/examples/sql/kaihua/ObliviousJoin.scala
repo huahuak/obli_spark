@@ -6,6 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
 import org.apache.spark.sql.catalyst.plans.JoinType
 import org.apache.spark.sql.execution.joins.BaseJoinExec
 import org.apache.spark.sql.execution.{RowIterator, SparkPlan}
+import org.kaihua.obliop.collection.FbsVector;
 
 case class ObliviousJoin(
     leftKeys: Seq[Expression],
@@ -24,9 +25,10 @@ case class ObliviousJoin(
   }
 
   override protected def doExecute(): RDD[InternalRow] = {
-    val a = right.execute()
     left.execute().zipPartitions(right.execute()) { (leftIter, rightIter) =>
       new RowIterator {
+        val a = rightIter.next()
+        a
         override def advanceNext(): Boolean = {
           false
         }

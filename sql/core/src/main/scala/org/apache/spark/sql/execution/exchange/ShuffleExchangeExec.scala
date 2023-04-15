@@ -480,7 +480,7 @@ object ShuffleExchangeExec {
                     })
                     .toList
                   fbs.append(record.asJava);
-                  val buf = fbs.finishAndClear();
+                  val buf = fbs.finish();
 
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);
