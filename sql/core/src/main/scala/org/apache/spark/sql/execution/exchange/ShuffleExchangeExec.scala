@@ -485,9 +485,11 @@ object ShuffleExchangeExec {
                   val input = FbsVector.toObliData(buf);
                   ObliOp.ObliDataSend(input);
                   val ctx = Context.empty();
-                  val result = Operation.mod(ctx, Operation.hash(ctx, input));
+                  val result =
+                    Operation.mod(Operation.hash(Operation.newDataNode(input)));
+                  ctx.addExpr(result)
                   ObliOp.ObliOpCtxExec(ctx);
-                  val fbs_buf = ObliOp.ObliDataGet(result);
+                  val fbs_buf = ObliOp.ObliDataGet(result.output);
                   FbsVector.printFbs(fbs_buf.get());
 
                   mutablePair

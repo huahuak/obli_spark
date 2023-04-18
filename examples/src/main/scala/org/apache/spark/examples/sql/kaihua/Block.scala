@@ -26,7 +26,8 @@ class blockIter(block: BlockInfo) extends Iterator[InternalRow] {
     assert(curRow < rowSize)
     val row = rowTable.rows(curRow);
     val writer =
-      new UnsafeRowWriter(row.fieldsLength(), row.fieldsLength() * 32)
+      new UnsafeRowWriter(row.fieldsLength())
+    writer.reset()
     for (i <- 0 until row.fieldsLength()) {
       val fieldObj = row.fields(i)
       fieldObj.valueType match {

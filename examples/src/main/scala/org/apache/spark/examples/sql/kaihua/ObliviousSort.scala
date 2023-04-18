@@ -74,9 +74,10 @@ case class ObliviousSort(
         })
 
         val result =
-          Operation.sort(ctx, data, sortOrderList.asJava);
-        ObliOp.ObliOpCtxExec(ctx);
-        val bytBuf = ObliOp.ObliDataGet(result)
+          Operation.sort(Operation.newDataNode(data), sortOrderList.asJava);
+        ctx.addExpr(result)
+        ObliOp.ObliOpCtxExec(ctx)
+        val bytBuf = ObliOp.ObliDataGet(result.output)
         block.setBytBuf(bytBuf.get())
       }
 
@@ -103,7 +104,7 @@ case class ObliviousSort(
       }
 
       // sort blocks using sorting network
-      def sortingNetwork(blocks: Array[BlockInfo]) = {
+      def sortingNetwork(blocks: Array[BlockInfo]): Unit = {
         def compareAndSwapInTEE(
             lIndex: Int,
             rIndex: Int,
@@ -147,10 +148,12 @@ case class ObliviousSort(
           val obliData = FbsVector.toObliData(unSortedBlock.getBytBuf())
           ObliOp.ObliDataSend(obliData)
           val ctx = Context.empty()
-          val sortedObliData =
-            Operation.sort(ctx, obliData, sortOrderList.asJava)
+          val sortedObliData = {
+            Operation.sort(Operation.newDataNode(obliData), sortOrderList.asJava)
+          }
+          ctx.addExpr(sortedObliData)
           ObliOp.ObliOpCtxExec(ctx)
-          val bytBuf = ObliOp.ObliDataGet(sortedObliData)
+          val bytBuf = ObliOp.ObliDataGet(sortedObliData.output)
           val sortedBlock = unSortedBlock
           sortedBlock.setBytBuf(bytBuf.get())
           BlockInfo.divideInto2Blocks(sortedBlock, lhs, rhs)

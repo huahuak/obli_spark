@@ -10,7 +10,7 @@ import org.apache.spark.sql.SparkSession
 object MyTest {
   case class People(name: String, age: Int)
 
-  case class Car(id: Long, owner: String)
+  case class Car(id: Int, owner: String)
 
   def main(args: Array[String]): Unit = {
     val spark = ObliviousSpark.getObliviousSpark(false)
