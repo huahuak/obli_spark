@@ -4,6 +4,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter
 import org.apache.spark.unsafe.types.UTF8String
+import org.kaihua.obliop.Config
 import org.kaihua.obliop.collection.FbsVector
 import org.kaihua.obliop.collection.fbs._
 
@@ -14,6 +15,7 @@ class blockIter(block: BlockInfo) extends Iterator[InternalRow] {
   val rowTable = RowTable.getRootAsRowTable(block.getBytBuf())
   var curRow = 0
   val rowSize = rowTable.rowsLength()
+  val a = 0;
 
   override def hasNext: Boolean = {
     if (curRow < rowSize) {
@@ -56,12 +58,14 @@ class blockIter(block: BlockInfo) extends Iterator[InternalRow] {
 object BlockInfo {
   def merge(lhs: BlockInfo, rhs: BlockInfo): BlockInfo = {
     val mergedBlock = new BlockInfo(lhs.attrs)
+    mergedBlock.cap = 2 * mergedBlock.cap
     Seq(lhs, rhs).foreach(block => {
       val iter = new blockIter(block)
       iter.foreach(ele => {
         mergedBlock.write(ele)
       })
     })
+    mergedBlock.finish()
     mergedBlock
   }
 
@@ -80,14 +84,28 @@ object BlockInfo {
         rhs.write(ele)
       }
     })
+    lhs.finish()
+    rhs.finish()
+  }
+
+  def dummy(): BlockInfo = {
+    new BlockInfo()
   }
 }
 
-class BlockInfo(val attrs: Seq[Attribute]) {
-  private val cap = math.pow(10, 4).toInt
+class BlockInfo() {
+  private var cap = Config.blockNumber
   private var len: Int = 0
   private var bytebuf: ByteBuffer = null
-  private var fbs = FbsVector.createVec()
+  private var fbs: FbsVector = null
+  private var attrs: Seq[Attribute] = null
+
+  def this(attrs: Seq[Attribute]) = {
+    this()
+    this.attrs = attrs
+    this.fbs = FbsVector.createVec()
+  }
+
   def write(internalRow: InternalRow): Boolean = {
     if (len >= cap) {
       finish()
@@ -124,7 +142,8 @@ class BlockInfo(val attrs: Seq[Attribute]) {
     */
   def reset(): Unit = {
     drop()
-    fbs = FbsVector.createVec()
+    this.len = 0
+    this.fbs = FbsVector.createVec()
   }
 
   def getBytBuf(): ByteBuffer = {
@@ -135,6 +154,9 @@ class BlockInfo(val attrs: Seq[Attribute]) {
     */
   def setBytBuf(bytBuf: ByteBuffer): Unit = {
     drop()
+    this.len = RowTable.getRootAsRowTable(bytBuf).rowsLength()
     this.bytebuf = bytBuf
   }
+
+  def isDummy: Boolean = this.attrs == null
 }

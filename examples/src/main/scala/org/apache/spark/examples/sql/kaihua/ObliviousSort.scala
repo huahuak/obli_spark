@@ -6,7 +6,12 @@ import org.apache.spark.sql.catalyst.expressions.{
   Ascending,
   Attribute,
   Descending,
+  Expression,
   SortOrder
+}
+import org.apache.spark.sql.catalyst.plans.physical.{
+  ClusteredDistribution,
+  Distribution
 }
 import org.apache.spark.sql.execution.{SparkPlan, UnaryExecNode}
 import org.kaihua.obliop.collection.FbsVector
@@ -18,6 +23,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 case class ObliviousSort(
+    keys: Seq[Expression],
     sortOrder: Seq[SortOrder],
     global: Boolean,
     child: SparkPlan
@@ -48,7 +54,7 @@ case class ObliviousSort(
       BlockInfoList.last.finish()
 
       // don't need sorting network
-      def nonSortingNetwork() = {
+      def nonSortingNetwork(): Unit = {
         assert(
           BlockInfoList.length == 1,
           "only one block can use nonSortingNetworks! but has %d blocks" format BlockInfoList.length
@@ -74,7 +80,7 @@ case class ObliviousSort(
         })
 
         val result =
-          Operation.sort(Operation.newDataNode(data), sortOrderList.asJava);
+          Operation.sort(Operation.newDataNode(data), sortOrderList.asJava)
         ctx.addExpr(result)
         ObliOp.ObliOpCtxExec(ctx)
         val bytBuf = ObliOp.ObliDataGet(result.output)
@@ -83,7 +89,7 @@ case class ObliviousSort(
 
       // Check if the input data size is a power of 2,
       // append dummy data if it isn't power of 2
-      def SortingNetworkEnv(f: Array[BlockInfo] => Unit) = {
+      def sortingNetworkEnv(function: Array[BlockInfo] => Unit): Unit = {
         // let input size be power of 2
         val inputSize = Iterator
           .iterate(1)(_ << 1)
@@ -91,13 +97,13 @@ case class ObliviousSort(
           .toSeq
           .last << 1
         val originalSize = BlockInfoList.length
-        var in = Array.fill(originalSize)(BlockInfoList.dequeue())
-        while(in.length < inputSize) {
+        var in = Array.fill(originalSize)(BlockInfoList.dequeue)
+        while (in.length < inputSize) {
           // null attrs block is dummy block,
           // which is bigger than any block
-          in :+= new BlockInfo(null)
+          in :+= BlockInfo.dummy()
         }
-        f(in)
+        function(in)
         (0 until originalSize).foreach(index => {
           BlockInfoList :+= in(index)
         })
@@ -105,7 +111,7 @@ case class ObliviousSort(
 
       // sort blocks using sorting network
       def sortingNetwork(blocks: Array[BlockInfo]): Unit = {
-        def compareAndSwapInTEE(
+        def obliviousCompareAndSwap(
             lIndex: Int,
             rIndex: Int,
             directionInSortingNetwork: Int
@@ -132,11 +138,12 @@ case class ObliviousSort(
 
           val lhs = blocks(lIndex)
           val rhs = blocks(rIndex)
-          // if found dummy block, simply cmp and swap
-          if (rhs.attrs == null) {
+          // the dummy block is infinite big.
+          // if found the dummy block, simply cmp and swap
+          if (rhs.isDummy) {
             return
           }
-          if (lhs.attrs == null) {
+          if (lhs.isDummy) {
             blocks(lIndex) = rhs
             blocks(rIndex) = lhs
             return
@@ -149,7 +156,10 @@ case class ObliviousSort(
           ObliOp.ObliDataSend(obliData)
           val ctx = Context.empty()
           val sortedObliData = {
-            Operation.sort(Operation.newDataNode(obliData), sortOrderList.asJava)
+            Operation.sort(
+              Operation.newDataNode(obliData),
+              sortOrderList.asJava
+            )
           }
           ctx.addExpr(sortedObliData)
           ObliOp.ObliOpCtxExec(ctx)
@@ -159,36 +169,41 @@ case class ObliviousSort(
           BlockInfo.divideInto2Blocks(sortedBlock, lhs, rhs)
         }
 
-        def multiRange(begin: Int, step: Double, end: Int): Iterator[Int] = {
-          Iterator
-            .iterate(begin)(i => { (i * step).toInt })
-            .takeWhile(_ <= end)
-        }
-
-        multiRange(2, 2, blocks.length).foreach(step => {
-          multiRange(step, 1 / 2, 2).foreach(innerStep => {
-            blocks.indices.foreach(item => {
-              val xor = item ^ innerStep
-              if (xor > innerStep) {
-                val directionInSortingNetwork = if ((item & step) != 0) { 1 }
-                else { -1 }
-                compareAndSwapInTEE(item, xor, directionInSortingNetwork)
-              }
-            })
+        Iterator
+          .iterate(2)(i => { i * 2 })
+          .takeWhile(_ <= blocks.length)
+          .foreach(step => {
+            Iterator
+              .iterate(step / 2)(i => { (i * 0.5).toInt })
+              .takeWhile(_ > 0)
+              .foreach(innerStep => {
+                blocks.indices.foreach(index => {
+                  val xor = index ^ innerStep
+                  if (xor > index) {
+                    val directionInSortingNetwork =
+                      if ((index & step) != 0) { 1 }
+                      else { -1 }
+                    obliviousCompareAndSwap(
+                      index,
+                      xor,
+                      directionInSortingNetwork
+                    )
+                  }
+                })
+              })
           })
-        })
       }
 
       if (BlockInfoList.length < 2) {
         nonSortingNetwork()
       } else {
-        SortingNetworkEnv { sortingNetwork }
+        sortingNetworkEnv { sortingNetwork }
       }
 
       // return iterator on blocks
       new Iterator[InternalRow] {
-        var bList = BlockInfoList
-        var cur = if (bList.nonEmpty) {
+        val bList: mutable.Queue[BlockInfo] = BlockInfoList
+        var cur: blockIter = if (bList.nonEmpty) {
           new blockIter(bList.dequeue())
         } else {
           null
@@ -205,7 +220,7 @@ case class ObliviousSort(
             }
             cur = new blockIter(bList.dequeue())
           }
-          true
+          cur.hasNext
         }
 
         override def next(): InternalRow = {
