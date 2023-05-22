@@ -24,7 +24,6 @@ case class ObliviousJoin(
   }
 
   override protected def doExecute(): RDD[InternalRow] = {
-    val a = right.execute()
     left.execute().zipPartitions(right.execute()) { (leftIter, rightIter) =>
       new RowIterator {
         override def advanceNext(): Boolean = {

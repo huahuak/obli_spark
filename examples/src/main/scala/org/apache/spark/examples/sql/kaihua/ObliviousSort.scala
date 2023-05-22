@@ -59,7 +59,6 @@ case class ObliviousSort(
           // get sort order
           var sortOrderList: List[SortOrderInfo] = List()
           sortOrder.foreach(so => {
-//            val soAttr = so.asInstanceOf[Expression].references;
             attrs.zipWithIndex.foreach(tuple => {
               val (a, index) = tuple
               if (so.child.canonicalized.equals(a.canonicalized)) {
