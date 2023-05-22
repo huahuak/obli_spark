@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 
 object ObliviousSpark {
   def getObliviousSpark(obliviousEnabled: Boolean): SparkSession = {
-    var sc = SparkSession
+    val sc = SparkSession
       .builder()
       .appName("Spark SQL basic example")
       .master("local")
@@ -14,11 +14,11 @@ object ObliviousSpark {
         "spark.shuffle.sort.bypassMergeThreshold",
         "0" // disable bypass merge sort, default is 200
       )
+//      .config("spark.sql.adaptive.enabled", false)
       .getOrCreate()
 
-    // self strategies
-    sc.sqlContext.experimental.extraStrategies =
-      Seq(ObliviousJoinStrategy) ++ sc.sqlContext.experimental.extraStrategies
+//    sc.sqlContext.experimental.extraStrategies =
+//      Seq(ObliviousJoinStrategy) ++ sc.sqlContext.experimental.extraStrategies
 
     sc
   }
