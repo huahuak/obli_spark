@@ -76,6 +76,7 @@
   </mailingLists>
 
   <modules>
+    <module>obliop</module>
     <module>common/sketch</module>
     <module>common/kvstore</module>
     <module>common/network-common</module>
@@ -101,7 +102,6 @@
     <module>external/kafka-0-10-sql</module>
     <module>external/avro</module>
     <!-- See additional modules enabled by profiles below -->
-    <module>obliop</module>
   </modules>
 
   <properties>
@@ -158,7 +158,7 @@
     <!-- managed up from 3.2.1 for SPARK-11652 -->
     <commons.collections.version>3.2.2</commons.collections.version>
     <commons.collections4.version>4.4</commons.collections4.version>
-    <scala.version>2.12.15</scala.version>
+    <scala.version>2.12.20</scala.version>
     <scala.binary.version>2.12</scala.binary.version>
     <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
     <!--

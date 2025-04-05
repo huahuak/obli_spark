@@ -1,0 +1,1 @@
+pub const CLIENT_DEBUG_ENABLE: bool = true;

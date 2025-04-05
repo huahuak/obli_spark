@@ -1,0 +1,30 @@
+namespace org.kaihua.obliop.collection.fbs;
+
+table IntValue {
+  value:int;
+}
+
+table DoubleValue {
+  value:double;
+}
+
+table StringValue {
+  value:string;
+}
+
+union FieldUnion {
+  IntValue, DoubleValue, StringValue
+}
+
+table Field {
+    value:FieldUnion;
+    is_null:bool;
+}
+
+table Row {
+  fields:[Field];
+}
+
+table RowTable {
+  rows:[Row];
+}
