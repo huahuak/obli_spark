@@ -49,7 +49,8 @@ pub extern "system" fn Java_org_kaihua_obliop_interfaces_ObliJni_doObliDataGet(
   println!("\x1b[0;34m");
   println!("// ------------------enter *ObliDataGet()* in rust------------------ //");
   let uuid: String = env.get_string(uuid).unwrap().into();
-  if let Some(mut buf) = interface::data_get(&ObliData::empty_with_uuid(&uuid)) {
+  let data = &ObliData::empty_with_uuid(&uuid);
+  if let Some(mut buf) = interface::data_get(data) {
     let byt_buf = unsafe {
       env
         .new_direct_byte_buffer(buf.as_mut_ptr(), buf.len())

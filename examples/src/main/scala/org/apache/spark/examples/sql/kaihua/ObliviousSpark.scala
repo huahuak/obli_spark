@@ -17,8 +17,8 @@ object ObliviousSpark {
 //      .config("spark.sql.adaptive.enabled", false)
       .getOrCreate()
 
-//    sc.sqlContext.experimental.extraStrategies =
-//      Seq(ObliviousJoinStrategy) ++ sc.sqlContext.experimental.extraStrategies
+    sc.sqlContext.experimental.extraStrategies =
+      Seq(ObliviousJoinStrategy) ++ sc.sqlContext.experimental.extraStrategies
 
     sc
   }

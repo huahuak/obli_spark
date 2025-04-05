@@ -32,7 +32,7 @@ public class FbsVector {
   }
 
   public static ByteBuffer test() {
-    ByteBuffer directBuf = ByteBuffer.allocateDirect(1024);
+    ByteBuffer directBuf = ByteBuffer.allocateDirect(20 * 1024 * 1024);
     FlatBufferBuilder builder = new FlatBufferBuilder(directBuf);
     int strOffset = builder.createString("hello world! here is java test");
     int strValueOffset = StringValue.createStringValue(builder, strOffset);

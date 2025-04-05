@@ -7,7 +7,7 @@ import org.kaihua.obliop.data.JniDataReceiver;
 public class ObliJni {
 
 	static {
-		System.load("/Users/huahua/Projects/obli/out/libobliclient.dylib");
+    System.load("/Users/huahua/Projects/obli_spark/obliop/obliclient/target/x86_64-apple-darwin/debug/libobliclient.dylib");
 	}
 
 	private static native String hello(String input);
